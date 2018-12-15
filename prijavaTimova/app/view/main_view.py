@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 
-from ..controller.main_controller import create_user, auth_user, get_all_areas
+from ..controller.main_controller import create_user, auth_user, get_all_areas, get_my_groups
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 areas = Blueprint('areas', __name__, url_prefix='/api/areas')
@@ -33,6 +33,14 @@ def view_areas():
 
         return jsonify([area.to_dict() for area in areas]), 201
 
+# @group.route('/', methods=['GET'])
+# def view_groups():
+#     if request.method == 'GET':  # sign up
+#         body = request.json
+#         my_groups = get_my_groups(body)
+#
+#         return jsonify([group.to_dict() for group in my_groups]), 201
+#
 
 # @teams.route('/', methods=['GET', 'POST'])
 # def teams_view():
