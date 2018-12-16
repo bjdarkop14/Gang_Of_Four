@@ -18,9 +18,10 @@ CREATE TABLE IF NOT EXISTS `Chat` (
 	`idGrupe`	INTEGER,
 	`idKorisnika`	INTEGER,
 	`tekst`	TEXT,
-	`kategorija`	TEXT,
+	`idOblasti`	INTEGER,
 	FOREIGN KEY(`idGrupe`) REFERENCES `Grupa`(`id`),
 	FOREIGN KEY(`idKorisnika`) REFERENCES `Korisnik`(`id`)
+	FOREIGN KEY(`idOblasti`) REFERENCES `Oblast`(`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `Grupa` (
@@ -207,10 +208,10 @@ def create_chat(user_id, data):
     c.execute(group_query, (user_id,))
     g = c.fetchone()
 
-    chat_query = """INSERT INTO Chat (tekst, kategorija, idGrupe, idKorisnika) VALUES (?, ?, ?, ?)"""
+    chat_query = """INSERT INTO Chat (tekst, idOblasti, idGrupe, idKorisnika) VALUES (?, ?, ?, ?)"""
     c.execute(chat_query, (data['text'], data['category'], g[0], user_id))
 
-    new_chat = Chat(textC=data['text'], category=data['category'], idGroup=g[0], idUser=user_id)
+    new_chat = Chat(textC=data['text'], category=data['area'], idGroup=g[0], idUser=user_id)
 
     conn.commit()
     c.close()
@@ -220,14 +221,39 @@ def create_chat(user_id, data):
 def get_all_chat():
     conn = _connect()  # todo use connection as context manager
     c = conn.cursor()
-    all_chat_query = """SELECT id, idGrupe, idKorisnika, tekst, kategorija FROM Chat"""
+    all_chat_query = """SELECT id, idGrupe, idKorisnika, tekst, idOblasti FROM Chat"""
     c.execute(all_chat_query)
     result_set = c.fetchall()
 
     chats = []
 
     for t in result_set:
-        created_chat = Chat(idGroup=t[1], idUser=t[2], textC=t[3], category=t[4])
+        area_query = """SELECT ime FROM Oblast WHERE id=?"""
+        c.execute(area_query, (t[4],))
+        a = c.fetchone()
+        created_chat = Chat(idGroup=t[1], idUser=t[2], textC=t[3], areaName=a[0])
+        chats.append(created_chat)
+
+    conn.commit()
+    c.close()
+    conn.close()
+
+    return chats
+
+def get_area_chat(area_id):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+    all_chat_query = """SELECT id, idGrupe, idKorisnika, tekst, idOblasti FROM Chat WHERE idOblasti = ?"""
+    c.execute(all_chat_query, (area_id,))
+    result_set = c.fetchall()
+
+    chats = []
+
+    for t in result_set:
+        area_query = """SELECT ime FROM Oblast WHERE id=?"""
+        c.execute(area_query, (t[4],))
+        a = c.fetchone()
+        created_chat = Chat(idGroup=t[1], idUser=t[2], textC=t[3], areaName=a[0])
         chats.append(created_chat)
 
     conn.commit()
@@ -237,6 +263,27 @@ def get_all_chat():
     return chats
 
 
+def get_group_chat(group_id):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+    all_group_query = """SELECT id, idGrupe, idKorisnika, tekst, idOblasti FROM Chat WHERE idGrupe= ?"""
+    c.execute(all_group_query, (group_id,))
+    result_set = c.fetchall()
+
+    chats = []
+
+    for t in result_set:
+        area_query = """SELECT ime FROM Oblast WHERE id=?"""
+        c.execute(area_query, (t[4],))
+        a = c.fetchone()
+        created_chat = Chat(idGroup=t[1], idUser=t[2], textC=t[3], areaName=a[0])
+        chats.append(created_chat)
+
+    conn.commit()
+    c.close()
+    conn.close()
+
+    return chats
 # def get_team(team_uuid):
 #     conn = _connect()  # todo use connection as context manager
 #     c = conn.cursor()

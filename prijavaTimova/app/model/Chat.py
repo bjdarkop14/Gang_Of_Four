@@ -1,14 +1,14 @@
 class Chat:
-    def __init__(self, textC, category, idGroup, idUser):
+    def __init__(self, textC, areaName, idGroup, idUser):
         self.textC = textC
-        self.category = category
+        self.areaName = areaName
         self.idUser = idUser
         self.idGroup = idGroup
 
     def to_dict(self):
         return {
             'textC': self.textC,
-            'category': self.category,
+            'area': self.areaName,
             'idUser': self.idUser,
             'idGroup': self.idGroup
         }

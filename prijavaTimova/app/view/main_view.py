@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 
 from ..controller.main_controller import create_user, auth_user, get_all_areas,\
-    get_group, create_group, join_group, create_area, create_chat, get_all_chat
+    get_group, create_group, join_group, create_area, create_chat, get_all_chat,\
+    get_area_chat, get_group_chat
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 areas = Blueprint('areas', __name__, url_prefix='/api/areas')
@@ -78,12 +79,22 @@ def view_chat():
 
         return jsonify(new_chat.to_dict()), 201
 
-    # members.route('/<string:team_member_id>', methods=['GET', 'PUT', 'DELETE'])
-    # def single_team_member_view(team_member_id):
-    #     if request.method == 'GET':  # get the team member
-    #         team_member = get_team_member(team_member_id)
-    #         if team_member is None:
-    #             return jsonify({'error': 'team member with unique id {} not found'.format(team_member_id)}), 404
+@chat.route('/area/<string:area_id>', methods=['GET'])
+def view_area_chat(area_id):
+    if request.method == 'GET':  # get chat by area
+        area_chats = get_area_chat(area_id)
+        if area_chats is None:
+            return jsonify({'error': 'category {} not found'.format(area_id)}), 404
+        return jsonify([chat.to_dict() for chat in area_chats]), 201
+
+@chat.route('/group/<string:group_id>', methods=['GET'])
+def view_group_chat(group_id):
+    if request.method == 'GET':  # get chat by area
+        group_chats = get_group_chat(group_id)
+        if group_chats is None:
+            return jsonify({'error': 'category {} not found'.format(group_id)}), 404
+        return jsonify([chat.to_dict() for chat in group_chats]), 201
+
 # @group.route('/<string:user_id>', methods=['GET'])
 # def find_group(user_id,area_id):
 #     if request.method == 'GET':  # sign up
