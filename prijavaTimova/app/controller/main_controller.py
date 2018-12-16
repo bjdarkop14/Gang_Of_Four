@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `Chat` (
 	`idGrupe`	INTEGER,
 	`idKorisnika`	INTEGER,
 	`tekst`	TEXT,
-	`tip`	TEXT,
+	`kategorija`	TEXT,
 	FOREIGN KEY(`idGrupe`) REFERENCES `Grupa`(`id`),
 	FOREIGN KEY(`idKorisnika`) REFERENCES `Korisnik`(`id`)
 );
@@ -27,7 +27,6 @@ CREATE TABLE IF NOT EXISTS `Grupa` (
 	`id`	INTEGER PRIMARY KEY AUTOINCREMENT,
 	`idOblasti`	INTEGER,
 	`aktivnost`	INTEGER,
-	`uRadu`	INTEGER,
 	FOREIGN KEY(`idOblasti`) REFERENCES `Oblast`(`id`)
 );
 
@@ -37,9 +36,9 @@ CREATE TABLE IF NOT EXISTS `Korisnik` (
 	`prezime`	TEXT,
 	`godinaRodjenja`	TEXT,
 	`sifra`	TEXT,
-	`link`	TEXT,
+	`deskripcija`	TEXT,
 	`idGrupe`	INTEGER,
-	FOREIGN KEY(`idGrupe`) REFERENCES `Grupa`(`id`)
+	FOREIGN KEY(`idGrupe`) REFERENCES `idGrupe`(`id`)
 );
 
 CREATE TABLE IF NOT EXISTS `Oblast` (
@@ -69,11 +68,11 @@ def create_user(data):
     conn = _connect()  # todo use connection as context manager
     c = conn.cursor()
 
-    user_query = """INSERT INTO Korisnik (ime, prezime, godinaRodjenja, sifra, link) VALUES (?,?,?,?,?)"""
-    c.execute(user_query, (data['name'], data['lastName'], data['year'], data['password'], data['link']))
+    user_query = """INSERT INTO Korisnik (ime, prezime, godinaRodjenja, sifra, deskripcija) VALUES (?,?,?,?,?)"""
+    c.execute(user_query, (data['name'], data['lastName'], data['year'], data['password'], data['deskripcija']))
     user_id = c.lastrowid
 
-    new_user = User(user_id, data['name'], data['lastName'], data['year'], data['link'], -1)
+    new_user = User(user_id, data['name'], data['lastName'], data['year'], data['deskripcija'], -1)
 
     conn.commit()
     c.close()
@@ -84,7 +83,7 @@ def create_user(data):
 def auth_user(data):
     conn = _connect()  # todo use connection as context manager
     c = conn.cursor()
-    query = """SELECT id, ime, prezime, godinaRodjenja, link, idGrupe FROM Korisnik WHERE ime=? AND sifra=? AND prezime=?"""
+    query = """SELECT id, ime, prezime, godinaRodjenja, deskripcija, idGrupe FROM Korisnik WHERE ime=? AND sifra=? AND prezime=?"""
     c.execute(query, (data['name'], data['password'], data['lastName']))
     t = c.fetchone()
 
@@ -122,37 +121,122 @@ def get_all_areas():
 
     return areas
 
-# def get_all_teams():
-#     conn = _connect()  # todo use connection as context manager
-#     c = conn.cursor()
-#     query = """SELECT id, name, description, photo_url, team_uuid FROM team"""
-#     c.execute(query)
-#     result_set = c.fetchall()
-#
-#     teams = []
-#
-#     for t in result_set:
-#         created_team = Team(id=t[0], name=t[1], description=t[2], photo_url=t[3], team_uuid=t[4])
-#
-#         member_query = """SELECT id, first_name, last_name, email, phone_number, school, city FROM
-#         team_member WHERE team_id=?"""
-#         c.execute(member_query, (created_team.id,))
-#         members = c.fetchall()
-#
-#         for m in members:
-#             created_member = TeamMember(id=m[0], first_name=m[1], last_name=m[2], email=m[3], phone_number=m[4],
-#                                         school=m[5], city=m[6], team=created_team)
-#             created_team.add_member(created_member)
-#
-#         teams.append(created_team)
-#
-#     conn.commit()
-#     c.close()
-#     conn.close()
-#
-#     return teams
-#
-#
+
+def get_group(user_id):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+
+    group_query = """SELECT idGrupe FROM Korisnik WHERE id = ?"""
+    c.execute(group_query, (user_id,))
+    g = c.fetchone()
+
+    query = """SELECT idOblasti FROM Grupa WHERE id = ?"""
+    c.execute(query, (g[0],))
+    t = c.fetchone()
+
+    area_query = """SELECT ime FROM Oblast WHERE id=?"""
+    c.execute(area_query, (t[0],))
+    a = c.fetchone()
+
+    group = Group(id=g[0], areaName=a[0], areaId=t[0])
+
+    user_query = """SELECT id, ime, prezime, godinaRodjenja, deskripcija FROM Korisnik
+        WHERE idGrupe = ?"""
+    c.execute(user_query, (g[0],))
+    users = c.fetchall()
+
+    for u in users:
+        user = User(id=u[0], name=u[1], lastName=u[2], year=u[3], description=u[4], idGroup=g[0])
+        group.add_user(user)
+
+    conn.commit()
+    c.close()
+    conn.close()
+
+    return group
+
+def create_group(area_id, user_id):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+
+    user_query = """INSERT INTO Grupa (idOblasti, aktivnost) VALUES (?,?)"""
+    c.execute(user_query, (area_id, 100))
+    group_id = c.lastrowid
+
+    user_query = """UPDATE Korisnik SET IdGrupe = ? WHERE id=?"""
+    c.execute(user_query, (group_id, user_id,))
+
+    conn.commit()
+    c.close()
+    conn.close()
+    return get_group(user_id)
+
+
+def join_group(group_id, user_id):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+
+    user_query = """UPDATE Korisnik SET IdGrupe = ? WHERE id=?"""
+    c.execute(user_query, (group_id, user_id,))
+
+    conn.commit()
+    c.close()
+    conn.close()
+    return get_group(user_id)
+
+def create_area(data):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+
+    query = """INSERT INTO Oblast (ime) VALUES (?)"""
+    c.execute(query, (data['name'],))
+    area_id = c.lastrowid
+
+    new_area = Area(area_id, data['name'])
+
+    conn.commit()
+    c.close()
+    conn.close()
+    return new_area
+
+def create_chat(user_id, data):
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+
+    group_query = """SELECT idGrupe FROM Korisnik WHERE id = ?"""
+    c.execute(group_query, (user_id,))
+    g = c.fetchone()
+
+    chat_query = """INSERT INTO Chat (tekst, kategorija, idGrupe, idKorisnika) VALUES (?, ?, ?, ?)"""
+    c.execute(chat_query, (data['text'], data['category'], g[0], user_id))
+
+    new_chat = Chat(textC=data['text'], category=data['category'], idGroup=g[0], idUser=user_id)
+
+    conn.commit()
+    c.close()
+    conn.close()
+    return new_chat
+
+def get_all_chat():
+    conn = _connect()  # todo use connection as context manager
+    c = conn.cursor()
+    all_chat_query = """SELECT id, idGrupe, idKorisnika, tekst, kategorija FROM Chat"""
+    c.execute(all_chat_query)
+    result_set = c.fetchall()
+
+    chats = []
+
+    for t in result_set:
+        created_chat = Chat(idGroup=t[1], idUser=t[2], textC=t[3], category=t[4])
+        chats.append(created_chat)
+
+    conn.commit()
+    c.close()
+    conn.close()
+
+    return chats
+
+
 # def get_team(team_uuid):
 #     conn = _connect()  # todo use connection as context manager
 #     c = conn.cursor()

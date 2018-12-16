@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
 
-from ..controller.main_controller import create_user, auth_user, get_all_areas, get_my_groups
+from ..controller.main_controller import create_user, auth_user, get_all_areas,\
+    get_group, create_group, join_group, create_area, create_chat, get_all_chat
 
 user = Blueprint('user', __name__, url_prefix='/api/user')
 areas = Blueprint('areas', __name__, url_prefix='/api/areas')
 group = Blueprint('group', __name__, url_prefix='/api/group')
+chat = Blueprint('chat', __name__, url_prefix='/api/chat')
 
 
 @user.route('/signup', methods=['POST'])
@@ -26,21 +28,68 @@ def user_login():
             return jsonify({'error': 'wrong password or username'}), 400
         return jsonify(user.to_dict()), 201
 
-@areas.route('/', methods=['GET'])
+@areas.route('/', methods=['GET','POST'])
 def view_areas():
-    if request.method == 'GET':  # log in
+    if request.method == 'GET':  # get all areas
         areas = get_all_areas()
-
         return jsonify([area.to_dict() for area in areas]), 201
 
-# @group.route('/', methods=['GET'])
-# def view_groups():
+    if request.method == 'POST':
+        body = request.json
+        area = create_area(body)
+        return jsonify(area.to_dict())
+
+@group.route('/', methods=['GET', 'POST'])
+def view_groups():
+    if request.method == 'GET':  # get group by user id
+        user_id = request.args.get('user_id', default=None, type=str)
+        my_group = get_group(user_id)
+
+        return jsonify(my_group.to_dict()), 201
+
+    if request.method == 'POST':  # create group by user id and area id
+        user_id = request.args.get('user_id', default=None, type=str)
+        area_id = request.args.get('area_id', default=None, type=str)
+        new_group = create_group(area_id, user_id)
+
+        return jsonify(new_group.to_dict()), 201
+
+@group.route('/<string:group_id>', methods=['POST'])
+def join_group_(group_id):
+    if request.method == 'POST':  # join group by group id
+        user_id = request.args.get('user_id', default=None, type=str)
+
+        my_group = join_group(group_id, user_id)
+
+        return jsonify(my_group.to_dict()), 201
+
+@chat.route('/', methods=['GET', 'POST'])
+def view_chat():
+    if request.method == 'GET':  # get all chat
+        user_id = request.args.get('user_id', default=None, type=str)
+        chats = get_all_chat()
+
+        return jsonify([chat.to_dict() for chat in chats]), 201
+
+    if request.method == 'POST':  # create chat by user id
+        user_id = request.args.get('user_id', default=None, type=str)
+        body = request.json
+        new_chat = create_chat(user_id, body)
+
+        return jsonify(new_chat.to_dict()), 201
+
+    # members.route('/<string:team_member_id>', methods=['GET', 'PUT', 'DELETE'])
+    # def single_team_member_view(team_member_id):
+    #     if request.method == 'GET':  # get the team member
+    #         team_member = get_team_member(team_member_id)
+    #         if team_member is None:
+    #             return jsonify({'error': 'team member with unique id {} not found'.format(team_member_id)}), 404
+# @group.route('/<string:user_id>', methods=['GET'])
+# def find_group(user_id,area_id):
 #     if request.method == 'GET':  # sign up
-#         body = request.json
-#         my_groups = get_my_groups(body)
+#         my_group = join_group(user_id,area_id)
 #
-#         return jsonify([group.to_dict() for group in my_groups]), 201
-#
+#         return jsonify(my_group.to_dict()), 201
 
 # @teams.route('/', methods=['GET', 'POST'])
 # def teams_view():

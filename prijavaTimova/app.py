@@ -10,6 +10,7 @@ def create_app(debug=False):
     app.register_blueprint(main_view.user)
     app.register_blueprint(main_view.areas)
     app.register_blueprint(main_view.group)
+    app.register_blueprint(main_view.chat)
     app.debug = debug
 
     return app

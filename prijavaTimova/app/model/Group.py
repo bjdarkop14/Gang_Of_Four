@@ -1,7 +1,8 @@
 class Group:
 
-    def __init__(self, id, areaId):
+    def __init__(self, id, areaName, areaId):
         self.id = id
+        self.areaName = areaName
         self.areaId = areaId
         self.users = []
 
@@ -12,5 +13,6 @@ class Group:
         return {
             'id': self.id,
             'areaId': self.areaId,
-            'users': [user.to_dict for user in self.users]
+            'areaName': self.areaName,
+            'users': [user.to_dict() for user in self.users]
         }
